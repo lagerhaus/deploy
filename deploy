@@ -1,0 +1,99 @@
+#!/bin/bash
+
+RED="\033[1;31m"
+RED_NO_BOLD="\033[0;31m"
+GREEN="\033[1;32m"
+BOLD="\033[1m"
+NO_COLOR="\033[0m"
+
+start_cmds=()
+
+function deploy_database {
+	echo -e "${RED}Setting up the Postgres database${NO_COLOR}"
+
+	echo "Enter the host name under which the database will be reachable"
+	default_host="localhost"
+	printf "${BOLD}Database host${NO_COLOR} [$default_host]: "
+	read database_host
+	database_host="${database_host:-$default_host}"
+	echo
+
+	echo Set up the new database user
+	echo -e "Note: If a database state is already present (in the pg_data folder)\nthe existing user will be re-used and this will have no effect"
+	printf "${BOLD}Username: ${NO_COLOR}"
+	read pg_user
+	printf "${BOLD}Password: ${NO_COLOR}"
+	read -s pg_pass
+	echo
+	echo
+
+	export LHAUS_CONNECTION_STRING="Host=$database_host;Database=$pg_user;Username=$pg_user;Password=$pg_pass"
+
+	echo -e "${BOLD}Starting Postgres${NO_COLOR}"
+	docker run --rm --name lhaus-postgres -e POSTGRES_USER=$pg_user -e POSTGRES_PASSWORD=$pg_pass -d -p 5432:5432 -v $(pwd)/pg_data:/var/lib/postgresql/data postgres
+	echo
+
+	echo -e "${BOLD}Setting up the database${NO_COLOR}"
+	PGPASSWORD=$pg_pass psql -h localhost -U $pg_user -f ./backend/db/create_database.sql $pg_user
+	echo
+
+	printf "${BOLD}Insert test data?${NO_COLOR} (y/N) "
+	read -r
+	if [[ $REPLY =~ ^[Yy]$ ]]
+	then
+		 PGPASSWORD=$pg_pass psql -h localhost -U $pg_user -f ./backend/db/insert_test_data.sql $pg_user
+	fi
+}
+
+function deploy_some_end {
+	name="$1end"
+	default_url=$2
+	url_env_var="LHAUS_${name^^}_URL"
+	server_dir=$3
+
+	echo -e "${RED}Setting up the $name${NO_COLOR}"
+	echo
+
+	echo "Enter the full $name URL (including the base path, which you CANNOT customize at the moment)"
+	printf "${BOLD}${name~} URL${NO_COLOR} [$default_url]: "
+	read frontend_url
+	export ${url_env_var}="${frontend_url:-$default_url}"
+	echo
+
+	echo "Using URL: ${!url_env_var}"
+	echo
+
+	echo "Building $name"
+	cd $server_dir
+	dotnet publish
+	cd -
+	echo "Build complete"
+	echo
+}
+
+function start_some_end {
+	name="$1end"
+	server_dir=$2
+	dll_name=$3
+
+	echo "Starting $name"
+	cd $server_dir/bin/Debug/netcoreapp2.1/publish
+	dotnet ${dll_name}
+}
+
+docker stop lhaus-postgres > /dev/null 2> /dev/null
+deploy_database
+echo
+echo
+deploy_some_end "back" "http://localhost:8080/api" ./backend/server/LagerhausServer "LagerhausServer.dll"
+echo
+echo
+deploy_some_end "front" "http://localhost:80" ./frontend/lagerhaus/lagerhaus "lagerhaus.dll"
+echo
+echo
+
+echo -e "${RED}Starting servers${NO_COLOR}"
+start_some_end "back" ./backend/server/LagerhausServer "LagerhausServer.dll" &
+start_some_end "front" ./frontend/lagerhaus/lagerhaus "lagerhaus.dll" &
+wait
+
