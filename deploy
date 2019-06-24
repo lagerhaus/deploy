@@ -8,6 +8,24 @@ NO_COLOR="\033[0m"
 
 function deploy_database {
 	echo -e "${RED}Setting up the Postgres database${NO_COLOR}"
+	echo
+
+	reusing_existing_pg_data=false
+
+	if [[ -d pg_data ]]
+	then
+		echo "Existing Postgres data was found (./pg_data/)"
+		printf "${BOLD}Delete existing data?${NO_COLOR} (y/N) "
+		read -r
+		if [[ $REPLY =~ ^[Yy]$ ]]
+		then
+			 rm -rf ./pg_data/
+		else
+			reusing_existing_pg_data=true
+			echo Re-using existing data
+		fi
+		echo
+	fi
 
 	echo "Enter the host name under which the database will be reachable"
 	default_host="localhost"
@@ -32,15 +50,18 @@ function deploy_database {
 	sleep 1
 	echo
 
-	echo -e "${BOLD}Setting up the database${NO_COLOR}"
-	PGPASSWORD=$pg_pass psql -h localhost -U $pg_user -f ./backend/db/create_database.sql $pg_user
-	echo
-
-	printf "${BOLD}Insert test data?${NO_COLOR} (y/N) "
-	read -r
-	if [[ $REPLY =~ ^[Yy]$ ]]
+	if [ "$reusing_existing_pg_data" = false ]
 	then
-		 PGPASSWORD=$pg_pass psql -h localhost -U $pg_user -f ./backend/db/insert_test_data.sql $pg_user
+		echo -e "${BOLD}Setting up the database${NO_COLOR}"
+		PGPASSWORD=$pg_pass psql -h localhost -f ./backend/db/create_database.sql $pg_user $pg_user
+		echo
+
+		printf "${BOLD}Insert test data?${NO_COLOR} (y/N) "
+		read -r
+		if [[ $REPLY =~ ^[Yy]$ ]]
+		then
+			 PGPASSWORD=$pg_pass psql -h localhost -f ./backend/db/insert_test_data.sql $pg_user $pg_user
+		fi
 	fi
 }
 
