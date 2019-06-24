@@ -53,7 +53,14 @@ function deploy_database {
 
 	echo -e "${BOLD}Starting Postgres${NO_COLOR}"
 	docker run --rm --name lhaus-postgres -e POSTGRES_USER=$pg_user -e POSTGRES_PASSWORD=$pg_pass -d -p 5432:5432 -v $(pwd)/pg_data:/var/lib/postgresql/data postgres
-	sleep 1
+	echo
+
+	echo "Waiting for database to come online (30 seconds left)..."
+	sleep 10
+	echo "Waiting for database to come online (20 seconds left)..."
+	sleep 10
+	echo "Waiting for database to come online (10 seconds left)..."
+	sleep 10
 	echo
 
 	if [ "$reusing_existing_pg_data" = false ]
