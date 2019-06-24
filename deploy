@@ -34,7 +34,13 @@ function deploy_database {
 	database_host="${database_host:-$default_host}"
 	echo
 
-	echo Set up the new database user
+	if [ "$reusing_existing_pg_data" = true ]
+	then
+		echo "Log in using the database user for the lagerhaus database"
+	else
+		echo Set up the new database user
+	fi
+
 	echo -e "Note: If a database state is already present (in the pg_data folder)\nthe existing user will be re-used and this will have no effect"
 	printf "${BOLD}Username: ${NO_COLOR}"
 	read pg_user
