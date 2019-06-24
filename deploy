@@ -91,6 +91,10 @@ deploy_some_end "front" "http://localhost:80" ./frontend/lagerhaus/lagerhaus "la
 echo
 echo
 
+echo -e "${GREEN}Setup complete${NO_COLOR}"
+echo
+echo
+
 echo -e "${RED}Starting servers${NO_COLOR}"
 start_some_end "back" ./backend/server/LagerhausServer "LagerhausServer.dll" &
 start_some_end "front" ./frontend/lagerhaus/lagerhaus "lagerhaus.dll" &
