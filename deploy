@@ -3,6 +3,7 @@
 RED="\033[1;31m"
 RED_NO_BOLD="\033[0;31m"
 GREEN="\033[1;32m"
+BLACK="\033[1;30m"
 BOLD="\033[1m"
 NO_COLOR="\033[0m"
 
@@ -55,11 +56,9 @@ function deploy_database {
 	docker run --rm --name lhaus-postgres -e POSTGRES_USER=$pg_user -e POSTGRES_PASSWORD=$pg_pass -d -p 5432:5432 -v $(pwd)/pg_data:/var/lib/postgresql/data postgres
 	echo
 
-	echo "Waiting for database to come online (30 seconds left)..."
+	echo -e "${BLACK}Waiting for database to come online (20 seconds left)...${NO_COLOR}"
 	sleep 10
-	echo "Waiting for database to come online (20 seconds left)..."
-	sleep 10
-	echo "Waiting for database to come online (10 seconds left)..."
+	echo -e "${BLACK}Waiting for database to come online (10 seconds left)...${NO_COLOR}"
 	sleep 10
 	echo
 
